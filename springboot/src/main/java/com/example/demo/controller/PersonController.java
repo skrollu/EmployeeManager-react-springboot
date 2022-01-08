@@ -1,10 +1,16 @@
 package com.example.demo.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.controller.assembler.PersonModelAssembler;
 import com.example.demo.exception.ResourceNotFoundException;
 import com.example.demo.jpa.Person;
 import com.example.demo.mapper.PersonMapper;
@@ -30,16 +37,27 @@ public class PersonController {
 	@Autowired
 	private PersonRepository personRepository;
 
+	private final PersonModelAssembler personAssembler;
+
+	PersonController(PersonRepository personRepository, PersonModelAssembler personAssembler) {
+		this.personRepository = personRepository;
+		this.personAssembler = personAssembler;
+	}
+
 	@GetMapping
-	public List<Person> getAll() {
-		return personRepository.findAll();
+	public CollectionModel<EntityModel<Person>> getAll() {
+
+		List<EntityModel<Person>> persons = personRepository.findAll().stream().map(personAssembler::toModel)
+				.collect(Collectors.toList());
+
+		return CollectionModel.of(persons, linkTo(methodOn(PersonController.class).getAll()).withSelfRel());
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<Person> getById(@PathVariable Long id) {
+	public EntityModel<Person> getById(@PathVariable Long id) {
 		Person person = personRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Person doesn't exist with this id " + id));
-		return ResponseEntity.ok(person);
+		return personAssembler.toModel(person);
 	}
 
 	@PostMapping
