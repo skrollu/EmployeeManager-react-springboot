@@ -3,7 +3,6 @@ package com.example.demo.controller;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -60,27 +60,46 @@ public class PersonController {
 		return personAssembler.toModel(person);
 	}
 
+	/**
+	 * Spring MVC’s ResponseEntity is used to create an HTTP 201 Created status
+	 * message. This type of response typically includes a Location response header,
+	 * and we use the URI derived from the model’s self-related link.
+	 * 
+	 * @param person
+	 * @return
+	 */
 	@PostMapping
-	public Person createPerson(@RequestBody @NonNull Person person) {
-		return personRepository.save(person);
+	public ResponseEntity<?> createPerson(@RequestBody @NonNull Person person) {
+		EntityModel<Person> entityModel = personAssembler.toModel(personRepository.save(person));
+		return ResponseEntity //
+				.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri()) //
+				.body(entityModel);
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<Person> updatePerson(@PathVariable @NonNull Long id, @RequestBody @NonNull Person person) {
+	public ResponseEntity<?> updatePerson(@PathVariable @NonNull Long id, @RequestBody @NonNull Person person) {
 		Person personToUpdate = personRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Person doesn't exist with this id " + id));
 		personToUpdate = PersonMapper.mapPerson(person, personToUpdate);
-		Person personUpdated = this.personRepository.save(personToUpdate);
-		return ResponseEntity.ok(personUpdated);
+
+		EntityModel<Person> entityModel = personAssembler.toModel(personRepository.save(personToUpdate));
+
+		return ResponseEntity //
+				.created(entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri()) //
+				.body(entityModel);
 	}
 
+	/**
+	 * This returns an HTTP 204 No Content response.
+	 * 
+	 * @param id
+	 * @return
+	 */
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Map<String, Boolean>> deleteEmployee(@PathVariable @NonNull Long id) {
 		Person personToDelete = personRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Person doesn't exist with this id " + id));
 		personRepository.delete(personToDelete);
-		Map<String, Boolean> response = new HashMap<>();
-		response.put("deleted", Boolean.TRUE);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.noContent().build();
 	}
 }
