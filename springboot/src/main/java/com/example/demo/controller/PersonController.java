@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,12 +43,12 @@ public class PersonController {
 	}
 
 	@PostMapping
-	public Person createPerson(@RequestBody Person person) {
+	public Person createPerson(@RequestBody @NonNull Person person) {
 		return personRepository.save(person);
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<Person> updatePerson(@PathVariable Long id, @RequestBody Person person) {
+	public ResponseEntity<Person> updatePerson(@PathVariable @NonNull Long id, @RequestBody @NonNull Person person) {
 		Person personToUpdate = personRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Person doesn't exist with this id " + id));
 		personToUpdate = PersonMapper.mapPerson(person, personToUpdate);
@@ -56,7 +57,7 @@ public class PersonController {
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Map<String, Boolean>> deleteEmployee(@PathVariable Long id) {
+	public ResponseEntity<Map<String, Boolean>> deleteEmployee(@PathVariable @NonNull Long id) {
 		Person personToDelete = personRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Person doesn't exist with this id " + id));
 		personRepository.delete(personToDelete);
